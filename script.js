@@ -118,66 +118,8 @@ class DifficultyManager {
  */
 class RomajiPatterns {
     constructor() {
-        // 複数の入力パターンを定義
-        this.patterns = {
-            'ん': ['nn', "n'", 'xn'],
-            'しゃ': ['sha', 'sya'],
-            'しゅ': ['shu', 'syu'],
-            'しょ': ['sho', 'syo'],
-            'ちゃ': ['cha', 'tya'],
-            'ちゅ': ['chu', 'tyu'],
-            'ちょ': ['cho', 'tyo'],
-            'じゃ': ['ja', 'jya', 'zya'],
-            'じゅ': ['ju', 'jyu', 'zyu'],
-            'じょ': ['jo', 'jyo', 'zyo'],
-            'ふぁ': ['fa', 'fwa'],
-            'ふぃ': ['fi', 'fwi'],
-            'ふぇ': ['fe', 'fwe'],
-            'ふぉ': ['fo', 'fwo'],
-            'つ': ['tu', 'tsu'],
-            'づ': ['du', 'dzu'],
-            'を': ['wo', 'o'],
-            'ー': ['-', '^']
-        };
-    }
-
-    /**
-     * ひらがなテキストからすべての可能なローマ字パターンを生成
-     * @param {string} hiragana - ひらがなテキスト
-     * @returns {Array} 可能なローマ字パターンの配列
-     */
-    generateAllPatterns(hiragana) {
-        const result = [];
-        
-        // 基本のローマ字変換
-        const baseRomaji = this.hiraganaToRomaji(hiragana);
-        result.push(baseRomaji);
-        
-        // パターン置換
-        for (const [hira, patterns] of Object.entries(this.patterns)) {
-            if (hiragana.includes(hira)) {
-                patterns.forEach(pattern => {
-                    const converted = baseRomaji.replace(
-                        new RegExp(this.hiraganaToRomaji(hira), 'g'), 
-                        pattern
-                    );
-                    if (!result.includes(converted)) {
-                        result.push(converted);
-                    }
-                });
-            }
-        }
-        
-        return result;
-    }
-
-    /**
-     * 基本的なひらがな→ローマ字変換
-     * @param {string} hiragana - ひらがなテキスト
-     * @returns {string} ローマ字テキスト
-     */
-    hiraganaToRomaji(hiragana) {
-        const table = {
+        // 基本的なひらがな→ローマ字変換テーブル
+        this.basicTable = {
             'あ': 'a', 'い': 'i', 'う': 'u', 'え': 'e', 'お': 'o',
             'か': 'ka', 'き': 'ki', 'く': 'ku', 'け': 'ke', 'こ': 'ko',
             'が': 'ga', 'ぎ': 'gi', 'ぐ': 'gu', 'げ': 'ge', 'ご': 'go',
@@ -197,35 +139,186 @@ class RomajiPatterns {
             'ー': '-'
         };
 
+        // 複数入力パターンの定義
+        this.alternativePatterns = {
+            // 単音の代替パターン
+            'shi': ['si'],
+            'chi': ['ti'],
+            'tsu': ['tu'],
+            'fu': ['hu'],
+            'ji': ['zi'],
+            'zu': ['du'],
+            'wo': ['o'],
+            
+            // 拗音の代替パターン
+            'sha': ['sya'],
+            'shu': ['syu'],
+            'sho': ['syo'],
+            'cha': ['tya'],
+            'chu': ['tyu'],
+            'cho': ['tyo'],
+            'ja': ['jya', 'zya'],
+            'ju': ['jyu', 'zyu'],
+            'jo': ['jyo', 'zyo'],
+            
+            // 特殊パターン
+            'n': ['nn', "n'"],
+            
+            // 長音パターン
+            'ou': ['oo', 'uu'],
+            'uu': ['oo'],
+            'oo': ['ou', 'uu']
+        };
+    }
+
+    /**
+     * ひらがなテキストからすべての可能なローマ字パターンを生成
+     * @param {string} hiragana - ひらがなテキスト
+     * @returns {Array} 可能なローマ字パターンの配列
+     */
+    generateAllPatterns(hiragana) {
+        // まず基本変換を実行
+        const basePattern = this.hiraganaToRomaji(hiragana);
+        const patterns = new Set([basePattern]);
+        
+        // 代替パターンを生成
+        this.generateAlternatives(basePattern, patterns);
+        
+        return Array.from(patterns);
+    }
+
+    /**
+     * 基本的なひらがな→ローマ字変換
+     * @param {string} hiragana - ひらがなテキスト
+     * @returns {string} ローマ字テキスト
+     */
+    hiraganaToRomaji(hiragana) {
         let result = '';
         let i = 0;
         
         while (i < hiragana.length) {
-            let found = false;
+            let converted = false;
             
-            // 2文字の組み合わせをチェック
+            // 拗音（きゃ、しゅ、ちょ等）をチェック
             if (i < hiragana.length - 1) {
-                const twoChar = hiragana.substr(i, 2);
-                if (table[twoChar]) {
-                    result += table[twoChar];
-                    i += 2;
-                    found = true;
+                const current = hiragana[i];
+                const next = hiragana[i + 1];
+                
+                if (['ゃ', 'ゅ', 'ょ'].includes(next)) {
+                    const youon = this.convertYouon(current, next);
+                    if (youon) {
+                        result += youon;
+                        i += 2;
+                        converted = true;
+                    }
                 }
             }
             
-            // 1文字をチェック
-            if (!found) {
-                const oneChar = hiragana[i];
-                if (table[oneChar]) {
-                    result += table[oneChar];
-                } else {
-                    result += oneChar; // 変換できない場合はそのまま
+            // 長音（う）をチェック
+            if (!converted && i < hiragana.length - 1) {
+                const current = hiragana[i];
+                const next = hiragana[i + 1];
+                
+                if (next === 'う' && this.isLongVowelCandidate(current)) {
+                    const longVowel = this.convertLongVowel(current, next);
+                    if (longVowel) {
+                        result += longVowel;
+                        i += 2;
+                        converted = true;
+                    }
                 }
+            }
+            
+            // 基本変換
+            if (!converted) {
+                const char = hiragana[i];
+                result += this.basicTable[char] || char;
                 i++;
             }
         }
         
         return result;
+    }
+
+    /**
+     * 拗音を変換
+     * @param {string} base - 基本文字（き、し等）
+     * @param {string} small - 小文字（ゃ、ゅ、ょ）
+     * @returns {string} 変換結果
+     */
+    convertYouon(base, small) {
+        const youonMap = {
+            'き': { 'ゃ': 'kya', 'ゅ': 'kyu', 'ょ': 'kyo' },
+            'し': { 'ゃ': 'sha', 'ゅ': 'shu', 'ょ': 'sho' },
+            'ち': { 'ゃ': 'cha', 'ゅ': 'chu', 'ょ': 'cho' },
+            'に': { 'ゃ': 'nya', 'ゅ': 'nyu', 'ょ': 'nyo' },
+            'ひ': { 'ゃ': 'hya', 'ゅ': 'hyu', 'ょ': 'hyo' },
+            'み': { 'ゃ': 'mya', 'ゅ': 'myu', 'ょ': 'myo' },
+            'り': { 'ゃ': 'rya', 'ゅ': 'ryu', 'ょ': 'ryo' },
+            'ぎ': { 'ゃ': 'gya', 'ゅ': 'gyu', 'ょ': 'gyo' },
+            'じ': { 'ゃ': 'ja',  'ゅ': 'ju',  'ょ': 'jo' },
+            'び': { 'ゃ': 'bya', 'ゅ': 'byu', 'ょ': 'byo' },
+            'ぴ': { 'ゃ': 'pya', 'ゅ': 'pyu', 'ょ': 'pyo' }
+        };
+        
+        return youonMap[base] && youonMap[base][small] || null;
+    }
+
+    /**
+     * 長音を変換
+     * @param {string} base - 基本文字
+     * @param {string} vowel - 母音
+     * @returns {string} 変換結果
+     */
+    convertLongVowel(base, vowel) {
+        const baseRomaji = this.basicTable[base];
+        if (!baseRomaji) return null;
+        
+        // 最後の母音を判定
+        const lastChar = baseRomaji.slice(-1);
+        
+        if (vowel === 'う') {
+            if (['o', 'u'].includes(lastChar)) {
+                return baseRomaji + 'u';
+            }
+            // 特別ケース: りょう → ryou
+            if (baseRomaji.endsWith('yo')) {
+                return baseRomaji + 'u';
+            }
+        }
+        
+        return baseRomaji + this.basicTable[vowel];
+    }
+
+    /**
+     * 長音の候補かチェック
+     * @param {string} char - 文字
+     * @returns {boolean} 長音候補かどうか
+     */
+    isLongVowelCandidate(char) {
+        const romaji = this.basicTable[char];
+        return romaji && ['o', 'u', 'yo'].some(v => romaji.endsWith(v));
+    }
+
+    /**
+     * 代替パターンを生成
+     * @param {string} basePattern - 基本パターン
+     * @param {Set} patterns - パターンセット
+     */
+    generateAlternatives(basePattern, patterns) {
+        for (const [standard, alternatives] of Object.entries(this.alternativePatterns)) {
+            if (basePattern.includes(standard)) {
+                alternatives.forEach(alt => {
+                    const newPattern = basePattern.replace(new RegExp(standard, 'g'), alt);
+                    patterns.add(newPattern);
+                    
+                    // 再帰的に代替パターンも生成
+                    if (newPattern !== basePattern) {
+                        this.generateAlternatives(newPattern, patterns);
+                    }
+                });
+            }
+        }
     }
 
     /**
@@ -769,7 +862,7 @@ class TypingGame {
         
         const currentTerm = this.shuffledTerms[this.currentTermIndex];
         
-        // 複数のローマ字パターンをチェック
+        // JavaScript側で複数のローマ字パターンをチェック
         if (this.romajiPatterns.isValidInput(this.currentInput, currentTerm.reading)) {
             // 完全一致 - 正解
             this.completeTerm();
@@ -812,8 +905,11 @@ class TypingGame {
      */
     completeTerm() {
         const currentTerm = this.shuffledTerms[this.currentTermIndex];
-        this.score += currentTerm.romaji.length * 10;
-        this.correctTyped += currentTerm.romaji.length;
+        // JavaScript側で生成されたパターンの最初の長さを使用
+        const patterns = this.romajiPatterns.generateAllPatterns(currentTerm.reading);
+        const termLength = patterns[0].length;
+        this.score += termLength * 10;
+        this.correctTyped += termLength;
         this.termsCompleted++;
         
         // 次の問題に進む
@@ -866,10 +962,10 @@ class TypingGame {
         this.elements.termReading.textContent = currentTerm.reading;
         this.elements.termMeaning.textContent = currentTerm.meaning;
         
-        // 複数のローマ字パターンを表示
+        // JavaScript側で生成した複数のローマ字パターンを表示
         const patterns = this.romajiPatterns.generateAllPatterns(currentTerm.reading);
-        const mainPattern = currentTerm.romaji || patterns[0];
-        const additionalPatterns = patterns.filter(p => p !== mainPattern);
+        const mainPattern = patterns[0]; // 最初のパターンをメインとして表示
+        const additionalPatterns = patterns.slice(1);
         
         let displayText = mainPattern;
         if (additionalPatterns.length > 0) {
