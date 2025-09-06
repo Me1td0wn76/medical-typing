@@ -36,6 +36,36 @@
             </div>
         </div>
 
+        <!-- 難易度設定エリア -->
+        <div class="difficulty-settings">
+            <h3>⚙️ 難易度設定</h3>
+            <div class="settings-grid">
+                <div class="setting-item">
+                    <label for="difficultyLevel">難易度レベル：</label>
+                    <select id="difficultyLevel">
+                        <option value="easy">初級 (2分、簡単な用語)</option>
+                        <option value="normal" selected>中級 (1分、標準用語)</option>
+                        <option value="hard">上級 (45秒、難しい用語)</option>
+                        <option value="expert">エキスパート (30秒、全用語)</option>
+                        <option value="custom">カスタム</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <label for="timeLimit">制限時間（秒）：</label>
+                    <input type="number" id="timeLimit" min="15" max="600" value="60" step="15">
+                </div>
+                <div class="setting-item">
+                    <label for="termCount">問題数：</label>
+                    <input type="number" id="termCount" min="5" max="50" value="10" step="1">
+                </div>
+                <div class="setting-item">
+                    <label for="showHints">ヒント表示：</label>
+                    <input type="checkbox" id="showHints" checked>
+                    <span class="checkbox-label">読みと意味を表示</span>
+                </div>
+            </div>
+        </div>
+
         <div class="stats">
             <div class="stat-item">
                 <div class="stat-value" id="score">0</div>
@@ -67,40 +97,9 @@
             </div>
         </div>
 
-        <div class="stats">
-            <div class="stat-item">
-                <div class="stat-value" id="score">0</div>
-                <div class="stat-label">スコア</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value" id="wpm">0</div>
-                <div class="stat-label">WPM</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value" id="accuracy">100</div>
-                <div class="stat-label">正確率(%)</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value" id="timer">60</div>
-                <div class="stat-label">残り時間(秒)</div>
-            </div>
-        </div>
-
-        <div class="progress-bar">
-            <div class="progress-fill" id="progressFill"></div>
-        </div>
-
-        <div class="question-area" id="questionArea">
-            <div class="question-term">
-                <div class="term-japanese" id="termJapanese">心電図</div>
-                <div class="term-reading" id="termReading">しんでんず</div>
-                <div class="term-meaning" id="termMeaning">心臓の電気的活動を記録する検査</div>
-            </div>
-        </div>
-
         <div class="typing-area" id="typingArea">
-            <div class="target-text" id="targetText">shindenzu</div>
-            <input type="text" class="input-field" id="inputField" placeholder="ここにローマ字でタイピングしてください..." disabled>
+            <div class="target-text" id="targetText">読み込み中...</div>
+            <input type="text" class="input-field" id="inputField" placeholder="ここにローマ字でタイピングしてください... (複数の入力方法に対応)" disabled>
         </div>
 
         <div class="controls">

@@ -1,7 +1,255 @@
 /**
- * CSV管理クラス
- * CSVファイルから医療用語データを読み込み・管理する
+ * 難易度管理クラス
+ * ゲームの難易度設定を管理
  */
+class DifficultyManager {
+    constructor() {
+        this.presets = {
+            easy: {
+                timeLimit: 120,
+                termCount: 8,
+                showHints: true,
+                name: '初級',
+                description: 'ゆっくり練習したい方向け'
+            },
+            normal: {
+                timeLimit: 60,
+                termCount: 10,
+                showHints: true,
+                name: '中級',
+                description: '標準的な練習'
+            },
+            hard: {
+                timeLimit: 45,
+                termCount: 12,
+                showHints: false,
+                name: '上級',
+                description: '集中力が必要'
+            },
+            expert: {
+                timeLimit: 30,
+                termCount: 15,
+                showHints: false,
+                name: 'エキスパート',
+                description: '最高難易度'
+            }
+        };
+        
+        this.currentSettings = { ...this.presets.normal };
+    }
+
+    /**
+     * プリセット難易度を設定
+     * @param {string} level - 難易度レベル
+     */
+    setPreset(level) {
+        if (this.presets[level]) {
+            this.currentSettings = { ...this.presets[level] };
+            this.updateUI();
+        }
+    }
+
+    /**
+     * カスタム設定を適用
+     * @param {Object} settings - カスタム設定
+     */
+    setCustom(settings) {
+        this.currentSettings = {
+            timeLimit: settings.timeLimit || 60,
+            termCount: settings.termCount || 10,
+            showHints: settings.showHints !== undefined ? settings.showHints : true,
+            name: 'カスタム',
+            description: 'ユーザー設定'
+        };
+    }
+
+    /**
+     * 現在の設定を取得
+     * @returns {Object} 現在の難易度設定
+     */
+    getCurrentSettings() {
+        return { ...this.currentSettings };
+    }
+
+    /**
+     * UIを現在の設定に更新
+     */
+    updateUI() {
+        const timeLimitInput = document.getElementById('timeLimit');
+        const termCountInput = document.getElementById('termCount');
+        const showHintsInput = document.getElementById('showHints');
+
+        if (timeLimitInput) timeLimitInput.value = this.currentSettings.timeLimit;
+        if (termCountInput) termCountInput.value = this.currentSettings.termCount;
+        if (showHintsInput) showHintsInput.checked = this.currentSettings.showHints;
+    }
+
+    /**
+     * 難易度に応じて用語をフィルタリング
+     * @param {Array} terms - 全用語配列
+     * @returns {Array} フィルタリングされた用語配列
+     */
+    filterTermsByDifficulty(terms) {
+        const settings = this.getCurrentSettings();
+        
+        // 難易度に応じて用語を選択
+        let filteredTerms = [...terms];
+        
+        if (settings.name === '初級') {
+            // 簡単な用語（短い用語を優先）
+            filteredTerms = terms.filter(term => 
+                term.romaji && term.romaji.length <= 8
+            ).sort((a, b) => a.romaji.length - b.romaji.length);
+        } else if (settings.name === '上級' || settings.name === 'エキスパート') {
+            // 難しい用語（長い用語を優先）
+            filteredTerms = terms.filter(term => 
+                term.romaji && term.romaji.length >= 6
+            ).sort((a, b) => b.romaji.length - a.romaji.length);
+        }
+        
+        // 指定された問題数に制限
+        return filteredTerms.slice(0, Math.min(settings.termCount, filteredTerms.length));
+    }
+}
+
+/**
+ * ローマ字入力パターン管理クラス
+ * 複数の入力方式（nn/n', shu/syu, cha/tya等）に対応
+ */
+class RomajiPatterns {
+    constructor() {
+        // 複数の入力パターンを定義
+        this.patterns = {
+            'ん': ['nn', "n'", 'xn'],
+            'しゃ': ['sha', 'sya'],
+            'しゅ': ['shu', 'syu'],
+            'しょ': ['sho', 'syo'],
+            'ちゃ': ['cha', 'tya'],
+            'ちゅ': ['chu', 'tyu'],
+            'ちょ': ['cho', 'tyo'],
+            'じゃ': ['ja', 'jya', 'zya'],
+            'じゅ': ['ju', 'jyu', 'zyu'],
+            'じょ': ['jo', 'jyo', 'zyo'],
+            'ふぁ': ['fa', 'fwa'],
+            'ふぃ': ['fi', 'fwi'],
+            'ふぇ': ['fe', 'fwe'],
+            'ふぉ': ['fo', 'fwo'],
+            'つ': ['tu', 'tsu'],
+            'づ': ['du', 'dzu'],
+            'を': ['wo', 'o'],
+            'ー': ['-', '^']
+        };
+    }
+
+    /**
+     * ひらがなテキストからすべての可能なローマ字パターンを生成
+     * @param {string} hiragana - ひらがなテキスト
+     * @returns {Array} 可能なローマ字パターンの配列
+     */
+    generateAllPatterns(hiragana) {
+        const result = [];
+        
+        // 基本のローマ字変換
+        const baseRomaji = this.hiraganaToRomaji(hiragana);
+        result.push(baseRomaji);
+        
+        // パターン置換
+        for (const [hira, patterns] of Object.entries(this.patterns)) {
+            if (hiragana.includes(hira)) {
+                patterns.forEach(pattern => {
+                    const converted = baseRomaji.replace(
+                        new RegExp(this.hiraganaToRomaji(hira), 'g'), 
+                        pattern
+                    );
+                    if (!result.includes(converted)) {
+                        result.push(converted);
+                    }
+                });
+            }
+        }
+        
+        return result;
+    }
+
+    /**
+     * 基本的なひらがな→ローマ字変換
+     * @param {string} hiragana - ひらがなテキスト
+     * @returns {string} ローマ字テキスト
+     */
+    hiraganaToRomaji(hiragana) {
+        const table = {
+            'あ': 'a', 'い': 'i', 'う': 'u', 'え': 'e', 'お': 'o',
+            'か': 'ka', 'き': 'ki', 'く': 'ku', 'け': 'ke', 'こ': 'ko',
+            'が': 'ga', 'ぎ': 'gi', 'ぐ': 'gu', 'げ': 'ge', 'ご': 'go',
+            'さ': 'sa', 'し': 'shi', 'す': 'su', 'せ': 'se', 'そ': 'so',
+            'ざ': 'za', 'じ': 'ji', 'ず': 'zu', 'ぜ': 'ze', 'ぞ': 'zo',
+            'た': 'ta', 'ち': 'chi', 'つ': 'tsu', 'て': 'te', 'と': 'to',
+            'だ': 'da', 'ぢ': 'di', 'づ': 'du', 'で': 'de', 'ど': 'do',
+            'な': 'na', 'に': 'ni', 'ぬ': 'nu', 'ね': 'ne', 'の': 'no',
+            'は': 'ha', 'ひ': 'hi', 'ふ': 'fu', 'へ': 'he', 'ほ': 'ho',
+            'ば': 'ba', 'び': 'bi', 'ぶ': 'bu', 'べ': 'be', 'ぼ': 'bo',
+            'ぱ': 'pa', 'ぴ': 'pi', 'ぷ': 'pu', 'ぺ': 'pe', 'ぽ': 'po',
+            'ま': 'ma', 'み': 'mi', 'む': 'mu', 'め': 'me', 'も': 'mo',
+            'や': 'ya', 'ゆ': 'yu', 'よ': 'yo',
+            'ら': 'ra', 'り': 'ri', 'る': 'ru', 'れ': 're', 'ろ': 'ro',
+            'わ': 'wa', 'ゐ': 'wi', 'ゑ': 'we', 'を': 'wo', 'ん': 'n',
+            'ゃ': 'ya', 'ゅ': 'yu', 'ょ': 'yo', 'っ': '',
+            'ー': '-'
+        };
+
+        let result = '';
+        let i = 0;
+        
+        while (i < hiragana.length) {
+            let found = false;
+            
+            // 2文字の組み合わせをチェック
+            if (i < hiragana.length - 1) {
+                const twoChar = hiragana.substr(i, 2);
+                if (table[twoChar]) {
+                    result += table[twoChar];
+                    i += 2;
+                    found = true;
+                }
+            }
+            
+            // 1文字をチェック
+            if (!found) {
+                const oneChar = hiragana[i];
+                if (table[oneChar]) {
+                    result += table[oneChar];
+                } else {
+                    result += oneChar; // 変換できない場合はそのまま
+                }
+                i++;
+            }
+        }
+        
+        return result;
+    }
+
+    /**
+     * 入力されたローマ字が正解のパターンのいずれかに一致するかチェック
+     * @param {string} input - 入力されたローマ字
+     * @param {string} reading - ひらがな読み
+     * @returns {boolean} 一致するかどうか
+     */
+    isValidInput(input, reading) {
+        const patterns = this.generateAllPatterns(reading);
+        return patterns.includes(input.toLowerCase());
+    }
+
+    /**
+     * 部分入力が正しい方向に進んでいるかチェック
+     * @param {string} input - 部分入力
+     * @param {string} reading - ひらがな読み
+     * @returns {boolean} 正しい方向に進んでいるか
+     */
+    isPartiallyCorrect(input, reading) {
+        const patterns = this.generateAllPatterns(reading);
+        return patterns.some(pattern => pattern.startsWith(input.toLowerCase()));
+    }
+}
 class CSVManager {
     constructor() {
         this.data = [];
@@ -166,7 +414,7 @@ class TypingGame {
         this.currentInput = '';
         this.isGameActive = false;
         this.startTime = null;
-        this.timeLimit = 60; // 60秒
+        this.timeLimit = 60; // デフォルト値（難易度設定で変更される）
         this.timerInterval = null;
         this.remainingTime = this.timeLimit;
         this.score = 0;
@@ -175,11 +423,14 @@ class TypingGame {
         this.termsCompleted = 0;
         
         this.csvManager = new CSVManager();
+        this.romajiPatterns = new RomajiPatterns(); // ローマ字パターン管理
+        this.difficultyManager = new DifficultyManager(); // 難易度管理
         this.medicalTerms = [];
         this.shuffledTerms = [];
         
         this.initializeElements();
         this.bindEvents();
+        this.setupDifficultyEvents();
         this.loadMedicalTerms();
     }
 
@@ -207,7 +458,12 @@ class TypingGame {
             typingArea: document.getElementById('typingArea'),
             csvFileInput: document.getElementById('csvFileInput'),
             loadingArea: document.getElementById('loadingArea'),
-            errorArea: document.getElementById('errorArea')
+            errorArea: document.getElementById('errorArea'),
+            // 難易度設定要素
+            difficultyLevel: document.getElementById('difficultyLevel'),
+            timeLimit: document.getElementById('timeLimit'),
+            termCount: document.getElementById('termCount'),
+            showHints: document.getElementById('showHints')
         };
     }
 
@@ -228,7 +484,67 @@ class TypingGame {
     }
 
     /**
-     * 医療用語データを読み込む
+     * 難易度設定のイベントリスナーを設定
+     */
+    setupDifficultyEvents() {
+        // 難易度レベル変更
+        if (this.elements.difficultyLevel) {
+            this.elements.difficultyLevel.addEventListener('change', (e) => {
+                if (e.target.value !== 'custom') {
+                    this.difficultyManager.setPreset(e.target.value);
+                    this.applyDifficultySettings();
+                }
+            });
+        }
+
+        // カスタム設定変更
+        const customInputs = [this.elements.timeLimit, this.elements.termCount, this.elements.showHints];
+        customInputs.forEach(input => {
+            if (input) {
+                input.addEventListener('change', () => {
+                    this.elements.difficultyLevel.value = 'custom';
+                    this.difficultyManager.setCustom({
+                        timeLimit: parseInt(this.elements.timeLimit.value),
+                        termCount: parseInt(this.elements.termCount.value),
+                        showHints: this.elements.showHints.checked
+                    });
+                    this.applyDifficultySettings();
+                });
+            }
+        });
+    }
+
+    /**
+     * 難易度設定を適用
+     */
+    applyDifficultySettings() {
+        const settings = this.difficultyManager.getCurrentSettings();
+        
+        // 時間制限を更新
+        this.timeLimit = settings.timeLimit;
+        this.remainingTime = settings.timeLimit;
+        this.elements.timer.textContent = settings.timeLimit;
+        
+        // ヒント表示を制御
+        if (settings.showHints) {
+            this.elements.termReading.style.display = 'block';
+            this.elements.termMeaning.style.display = 'block';
+        } else {
+            this.elements.termReading.style.display = 'none';
+            this.elements.termMeaning.style.display = 'none';
+        }
+        
+        // 用語をフィルタリング
+        if (this.medicalTerms.length > 0) {
+            this.shuffledTerms = this.difficultyManager.filterTermsByDifficulty(this.medicalTerms);
+            this.shuffledTerms = this.shuffleArray(this.shuffledTerms);
+            this.currentTermIndex = 0;
+            this.displayCurrentTerm();
+        }
+    }
+
+    /**
+     * 医療用語データを読み込む（難易度設定対応）
      */
     async loadMedicalTerms() {
         this.showLoading(true);
@@ -245,7 +561,9 @@ class TypingGame {
             this.showError(true, 'CSVファイルが見つかりません。デフォルトの用語を使用します。');
         }
         
-        this.shuffledTerms = this.shuffleArray([...this.medicalTerms]);
+        // 初期難易度設定を適用
+        this.applyDifficultySettings();
+        
         this.showLoading(false);
         this.displayCurrentTerm();
     }
@@ -321,11 +639,17 @@ class TypingGame {
     /**
      * ゲーム開始
      */
+    /**
+     * ゲーム開始（難易度設定対応）
+     */
     startGame() {
         if (this.medicalTerms.length === 0) {
             alert('医療用語データが読み込まれていません。');
             return;
         }
+
+        // 現在の難易度設定を適用
+        this.applyDifficultySettings();
 
         this.isGameActive = true;
         this.startTime = Date.now();
@@ -337,7 +661,9 @@ class TypingGame {
         this.currentTermIndex = 0;
         this.currentInput = '';
         
-        this.shuffledTerms = this.shuffleArray([...this.medicalTerms]);
+        // 難易度に応じて用語をフィルタリング
+        this.shuffledTerms = this.difficultyManager.filterTermsByDifficulty(this.medicalTerms);
+        this.shuffledTerms = this.shuffleArray(this.shuffledTerms);
         
         this.elements.startBtn.style.display = 'none';
         this.elements.nextBtn.style.display = 'none';
@@ -349,6 +675,8 @@ class TypingGame {
         this.displayCurrentTerm();
         this.startTimer();
         this.updateStats();
+        
+        console.log(`ゲーム開始: ${this.difficultyManager.getCurrentSettings().name}難易度, ${this.timeLimit}秒, ${this.shuffledTerms.length}問題`);
     }
 
     /**
@@ -430,7 +758,7 @@ class TypingGame {
     }
 
     /**
-     * 入力ハンドラ
+     * 入力ハンドラ（複数ローマ字パターン対応）
      * @param {Event} e - 入力イベント
      */
     handleInput(e) {
@@ -438,17 +766,33 @@ class TypingGame {
         
         this.currentInput = e.target.value;
         this.totalTyped = Math.max(this.totalTyped, this.currentInput.length);
-        this.updateTargetDisplay();
-        this.updateStats();
         
         const currentTerm = this.shuffledTerms[this.currentTermIndex];
-        if (this.currentInput === currentTerm.romaji) {
+        
+        // 複数のローマ字パターンをチェック
+        if (this.romajiPatterns.isValidInput(this.currentInput, currentTerm.reading)) {
+            // 完全一致 - 正解
             this.completeTerm();
+            return;
         }
+        
+        // 部分入力チェック
+        if (this.romajiPatterns.isPartiallyCorrect(this.currentInput, currentTerm.reading)) {
+            // 正しい方向に進んでいる - 緑色表示
+            e.target.style.backgroundColor = '#e8f5e8';
+            e.target.style.borderColor = '#28a745';
+        } else {
+            // 間違った入力 - 赤色表示
+            e.target.style.backgroundColor = '#ffeaea';
+            e.target.style.borderColor = '#dc3545';
+        }
+        
+        this.updateTargetDisplay();
+        this.updateStats();
     }
 
     /**
-     * キーダウンハンドラ
+     * キーダウンハンドラ（複数ローマ字パターン対応）
      * @param {Event} e - キーダウンイベント
      */
     handleKeyDown(e) {
@@ -457,7 +801,7 @@ class TypingGame {
         // Enterキーで次の問題に進む（正解している場合のみ）
         if (e.key === 'Enter') {
             const currentTerm = this.shuffledTerms[this.currentTermIndex];
-            if (this.currentInput === currentTerm.romaji) {
+            if (this.romajiPatterns.isValidInput(this.currentInput, currentTerm.reading)) {
                 this.completeTerm();
             }
         }
@@ -479,10 +823,19 @@ class TypingGame {
     }
 
     /**
-     * 次の用語に進む
+     * 次の用語に進む（問題数制限対応）
      */
     nextTerm() {
-        this.currentTermIndex = (this.currentTermIndex + 1) % this.shuffledTerms.length;
+        this.currentTermIndex++;
+        
+        // 問題数上限チェック
+        const settings = this.difficultyManager.getCurrentSettings();
+        if (this.currentTermIndex >= this.shuffledTerms.length || 
+            this.termsCompleted >= settings.termCount) {
+            this.endGame();
+            return;
+        }
+        
         this.currentInput = '';
         this.elements.inputField.value = '';
         this.displayCurrentTerm();
@@ -495,6 +848,9 @@ class TypingGame {
 
     /**
      * 現在の用語を表示
+     */
+    /**
+     * 現在の用語を表示（複数ローマ字パターン対応）
      */
     displayCurrentTerm() {
         if (this.shuffledTerms.length === 0) {
@@ -509,6 +865,18 @@ class TypingGame {
         this.elements.termJapanese.textContent = currentTerm.japanese;
         this.elements.termReading.textContent = currentTerm.reading;
         this.elements.termMeaning.textContent = currentTerm.meaning;
+        
+        // 複数のローマ字パターンを表示
+        const patterns = this.romajiPatterns.generateAllPatterns(currentTerm.reading);
+        const mainPattern = currentTerm.romaji || patterns[0];
+        const additionalPatterns = patterns.filter(p => p !== mainPattern);
+        
+        let displayText = mainPattern;
+        if (additionalPatterns.length > 0) {
+            displayText += ` (または: ${additionalPatterns.join(', ')})`;
+        }
+        this.elements.targetText.textContent = displayText;
+        
         this.updateTargetDisplay();
     }
 
@@ -547,7 +915,7 @@ class TypingGame {
     }
 
     /**
-     * 統計情報の更新
+     * 統計情報の更新（難易度対応進捗表示）
      */
     updateStats() {
         this.elements.score.textContent = this.score;
@@ -560,6 +928,17 @@ class TypingGame {
             const accuracy = this.totalTyped > 0 ? Math.round((this.correctTyped / this.totalTyped) * 100) : 100;
             this.elements.accuracy.textContent = accuracy;
         }
+        
+        // 問題進捗をプログレスバーに表示
+        const settings = this.difficultyManager.getCurrentSettings();
+        const totalProblems = Math.min(settings.termCount, this.shuffledTerms.length);
+        const completedProblems = this.termsCompleted;
+        const progressPercentage = (completedProblems / totalProblems) * 100;
+        
+        // プログレスバーに進捗を反映（時間ベースと問題数ベースの両方を考慮）
+        const timeProgress = ((this.timeLimit - this.remainingTime) / this.timeLimit) * 100;
+        const overallProgress = Math.max(progressPercentage, timeProgress);
+        this.elements.progressFill.style.width = `${Math.min(overallProgress, 100)}%`;
     }
 }
 
