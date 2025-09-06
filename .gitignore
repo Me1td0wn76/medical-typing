@@ -1,0 +1,11 @@
+# 生成されたファイルを無視
+*.csv
+*.pdf
+*.log
+# Pythonのキャッシュファイルを無視
+__pycache__/
+*.py[cod]
+# 仮想環境のディレクトリを無視
+venv/
+env/
+.venv/

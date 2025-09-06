@@ -1,4 +1,4 @@
-# 🏥 医療用語タイピング練習アプリ
+# 医療用語タイピング練習アプリ
 
 HTMLとJavaScriptのみで作成された医療用語のタイピング練習アプリケーションです。CSVファイルから用語を読み込みます。
 
@@ -6,15 +6,18 @@ HTMLとJavaScriptのみで作成された医療用語のタイピング練習ア
 
 ```
 medical-typing/
-├── index.html          # メインHTMLファイル
-├── script.js           # JavaScriptロジック（コメント付き）
-├── styles.css          # CSSスタイルシート
-├── medical-terms.csv   # 医療用語データ（30語収録）
-├── setup.sh           # Ubuntu用セットアップスクリプト
-└── README.md          # このファイル
+├── index.html                    # メインHTMLファイル
+├── script.js                     # JavaScriptロジック（コメント付き）
+├── styles.css                    # CSSスタイルシート
+├── medical-terms.csv             # 医療用語データ（30語収録）
+├── setup.sh                     # Ubuntu用セットアップスクリプト
+├── pdf_to_csv.py                # PDF→CSV変換プログラム
+├── pdf_to_csv_gui.py            # PDF変換GUI版
+├── install_pdf_converter.sh      # PDF変換ツール用セットアップ
+└── README.md                    # このファイル
 ```
 
-## 🚀 Ubuntu でのセットアップ
+## Ubuntu でのセットアップ
 
 ### 自動セットアップ（推奨）
 
@@ -96,7 +99,7 @@ japanese,reading,romaji,meaning
 ### カスタムCSVファイルの追加
 
 1. 上記の形式でCSVファイルを作成
-2. アプリの「📁 カスタムCSVファイルを読み込む」ボタンから読み込み
+2. アプリの「カスタムCSVファイルを読み込む」ボタンから読み込み
 3. 新しい用語でタイピング練習が可能
 
 ## アプリの使用方法
@@ -177,6 +180,117 @@ this.score += currentTerm.romaji.length * 20; // 1文字20点に変更
 
 `styles.css` ファイルを編集してデザインをカスタマイズ可能。
 
+## PDF to CSV 変換機能
+
+PDFファイルから医療用語を自動抽出してCSVファイルに変換する機能を搭載しています。
+
+### セットアップ
+
+#### 自動セットアップ
+```bash
+# メインのセットアップ時にPDF変換機能も選択
+./setup.sh
+
+# または個別にPDF変換機能のみセットアップ
+chmod +x install_pdf_converter.sh
+./install_pdf_converter.sh
+```
+
+#### 手動セットアップ
+```bash
+# 必要なPythonライブラリをインストール
+pip3 install PyPDF2 pykakasi
+
+# GUI版を使用する場合は追加でtkinterをインストール
+sudo apt install python3-tk
+```
+
+### 使用方法
+
+#### コマンドライン版
+```bash
+# 基本的な使用方法
+python3 pdf_to_csv.py input.pdf output.csv
+
+# 例：医療教科書から用語を抽出
+python3 pdf_to_csv.py medical_textbook.pdf my_medical_terms.csv
+
+# ヘルプ表示
+python3 pdf_to_csv.py --help
+```
+
+#### GUI版
+```bash
+# GUI版を起動
+python3 pdf_to_csv_gui.py
+```
+
+### 機能
+
+#### 医療用語自動抽出
+- **パターンマッチング**: ～症、～病、～炎、～検査などの医療用語パターンを認識
+- **辞書ベース抽出**: 内蔵の医療用語辞書から既知の用語を抽出
+- **漢字ベース抽出**: 医療関連漢字を含む語を抽出
+
+#### 自動変換機能
+- **ひらがな変換**: 漢字からひらがな読みを自動生成
+- **ローマ字変換**: ひらがなからローマ字を自動生成
+- **意味付与**: 既知の用語には詳細な意味を付与
+
+#### 出力オプション
+- **重複除去**: 同じ用語の重複を自動除去
+- **文字数フィルタ**: 最小・最大文字数での絞り込み
+- **ソート機能**: 文字数順または五十音順でソート
+
+### 対応ファイル形式
+
+#### 入力
+- **PDF**: テキスト化可能なPDFファイル
+- **推奨**: 医療教科書、論文、診療ガイドライン等
+
+#### 出力
+- **CSV**: タイピング練習アプリで使用可能な形式
+- **フォーマット**: japanese,reading,romaji,meaning
+
+### 抽出される医療用語の例
+
+```csv
+japanese,reading,romaji,meaning
+心不全,しんふぜん,shinfuzen,心臓のポンプ機能低下による病気
+急性心筋梗塞,きゅうせいしんきんこうそく,kyuuseishinkinkousoku,心筋への血流が急激に遮断される疾患
+糖尿病性腎症,とうにょうびょうせいじんしょう,tounyoubyouseijinshou,糖尿病による腎臓の合併症
+```
+
+### GUI版の特徴
+
+- **ドラッグ&ドロップ**: ファイル選択が簡単
+- **リアルタイム進捗**: 変換の進行状況を表示
+- **プレビュー機能**: 抽出結果をその場で確認
+- **オプション設定**: 文字数フィルタや重複除去の設定
+- **エラーハンドリング**: 分かりやすいエラーメッセージ
+
+### 高度な使用方法
+
+#### カスタム医療用語辞書の追加
+`pdf_to_csv.py`の`medical_dictionary`を編集：
+
+```python
+self.medical_dictionary = {
+    '新しい用語': '新しい用語の説明',
+    # ... 既存の辞書 ...
+}
+```
+
+#### 抽出パターンのカスタマイズ
+`medical_patterns`配列を編集：
+
+```python
+self.medical_patterns = [
+    r'[一-龯]+症候群$',  # 症候群パターンを追加
+    # ... 既存のパターン ...
+]
+```
+
 ## トラブルシューティング
 
 ### よくある問題
@@ -198,6 +312,17 @@ this.score += currentTerm.romaji.length * 20; // 1文字20点に変更
 
 ブラウザの開発者ツール（F12）のコンソールでエラーを確認できます。
 
+## pdfをcsvに変換する方法
+### 必要なツール
+- Python 3.x
+- pandas ライブラリ
+- tabula-py ライブラリ
+### 手順
+1. pdf_to_csv.py を起動し、pdfのサンプルファイルを用意する
+[厚生労働省のpdfサンプル]https://numatatone.gunma.med.or.jp/renkei/wp/wp-content/uploads/2024/08/20240806_glossary-of-technical-terms.pdf
 
-
-
+# 終わりに
+今回は、医療用語を練習するためのwebアプリを作成してみました。
+即興で作成したので、コードの品質はあまり高くないですが、基本的な機能は備えています。
+医療用語の抽出やCSV変換機能も搭載しているので、ぜひ活用してみてください。
+以上、YAMAでした。
