@@ -1,0 +1,32 @@
+{
+  "name": "medical-typing",
+  "version": "1.0.0",
+  "description": "医療用語タイピング練習アプリ - CSV管理対応",
+  "main": "index.html",
+  "scripts": {
+    "start": "http-server -p 8000 -c-1",
+    "dev": "http-server -p 8000 -c-1 --cors",
+    "python-server": "python3 -m http.server 8000",
+    "install-deps": "npm install -g http-server"
+  },
+  "keywords": [
+    "medical",
+    "typing",
+    "japanese",
+    "romaji",
+    "practice",
+    "education",
+    "healthcare"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "homepage": "",
+  "engines": {
+    "node": ">=12.0.0"
+  }
+}
